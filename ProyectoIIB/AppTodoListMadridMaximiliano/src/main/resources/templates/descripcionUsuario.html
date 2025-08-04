@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle de Usuario</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Detalle de Usuario</h2>
+
+        <!-- Definición de lista de datos -->
+        <dl class="row">
+            <dt class="col-sm-3">ID</dt>
+            <dd class="col-sm-9" th:text="${usuario.id}">–</dd>
+
+            <dt class="col-sm-3">Correo electrónico</dt>
+            <dd class="col-sm-9" th:text="${usuario.email}">–</dd>
+
+            <dt class="col-sm-3">Nombre</dt>
+            <dd class="col-sm-9" th:text="${usuario.nombre}">–</dd>
+
+            <dt class="col-sm-3">Fecha de nacimiento</dt>
+            <dd class="col-sm-9"
+                th:text="${#dates.format(usuario.fechaNacimiento, 'dd/MM/yyyy')}">
+                – 
+            </dd>
+        </dl>
+
+        <a th:href="@{/registrados}" class="btn btn-secondary">Volver al listado</a>
+    </div>
+</body>
+</html>

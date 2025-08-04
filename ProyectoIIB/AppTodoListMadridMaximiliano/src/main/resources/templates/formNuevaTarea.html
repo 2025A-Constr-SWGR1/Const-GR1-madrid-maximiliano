@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="fragments :: head (titulo='Nueva Tarea')"></head>
+
+<body>
+<!-- Inserta el navbar -->
+<div th:replace="fragments :: navbar"></div>
+<div class="container-fluid">
+
+    <h2 th:text="'Nueva tarea para el usuario ' + ${usuario.nombre}"></h2>
+
+    <form method="post" th:action="@{/usuarios/{id}/tareas/nueva(id=${usuario.id})}" th:object="${tareaData}">
+        <input type="hidden" th:field="*{usuarioId}" />
+
+        <div class="col-6">
+            <div class="form-group">
+                <label for="titulo">Título de la tarea:</label>
+                <input class="form-control" id="titulo" name="titulo" required th:field="*{titulo}" type="text"/>
+            </div>
+
+            <!-- Campo Fecha de vencimiento (OPCIONAL - sin required) -->
+            <div class="form-group mt-3">
+                <label for="fechaVencimiento">Fecha de vencimiento (opcional):</label>
+                <input class="form-control" id="fechaVencimiento" name="fechaVencimiento"
+                       type="date" th:field="*{fechaVencimiento}"/>
+                <small class="form-text text-muted">Deja vacío si no necesitas fecha límite</small>
+            </div>
+
+            <button class="btn btn-primary mt-3" type="submit">Crear tarea</button>
+            <a class="btn btn-link" th:href="@{/usuarios/{id}/tareas(id=${usuario.id})}">Cancelar</a>
+        </div>
+    </form>
+
+</div>
+
+<div th:replace="fragments::javascript"></div>
+
+</body>
+</html>

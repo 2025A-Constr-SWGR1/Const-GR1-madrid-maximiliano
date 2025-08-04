@@ -1,0 +1,126 @@
+/* Fondo general */
+body {
+    background: linear-gradient(135deg, #f3e6ff, #dbc1f0);
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #9b59b6; /* morado fuerte */
+}
+
+.navbar .nav-link,
+.navbar-brand,
+.navbar .dropdown-toggle {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+.navbar .nav-link:hover,
+.navbar .dropdown-item:hover {
+    color: #f5dfff !important;
+}
+
+/* Botones personalizados */
+.btn-primary {
+    background-color: #8e44ad;
+    border-color: #8e44ad;
+}
+
+.btn-primary:hover {
+    background-color: #732d91;
+    border-color: #732d91;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+.btn-success {
+    background-color: #27ae60;
+    border-color: #27ae60;
+}
+
+.btn-success:hover {
+    background-color: #1e8449;
+    border-color: #1e8449;
+}
+
+.btn-info {
+    background-color: #6c5ce7;
+    border-color: #6c5ce7;
+}
+
+.btn-info:hover {
+    background-color: #5a4dcf;
+    border-color: #5a4dcf;
+}
+
+/* Tabla */
+.table th {
+    background-color: #a569bd;
+    color: white;
+}
+
+.table td {
+    background-color: #f9f1fb;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f4e1ff;
+}
+
+/* Modal */
+.modal-content {
+    background-color: #f8edff;
+    border-radius: 10px;
+}
+
+/* Alertas */
+.alert {
+    border-radius: 8px;
+}
+
+.alert-success {
+    background-color: #d2b4de;
+    color: #4a235a;
+    border-color: #bb8fce;
+}
+
+/* Contador de tareas */
+#selectedCounter {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Forzar color oscuro del texto en navbar con fondo claro */
+.navbar .nav-link,
+.navbar-brand,
+.navbar .dropdown-toggle {
+    color: rgb(58, 58, 58) !important;
+}
+
+.tareas-contador {
+    background-color: #e2f0fd;
+    border-left: 4px solid #4a90e2;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.tarea-row {
+    transition: all 0.3s ease;
+}
+
+.tarea-row.removing {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+

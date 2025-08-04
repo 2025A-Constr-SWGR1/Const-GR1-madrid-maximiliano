@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="fragments :: head (titulo='Lista de tareas')">
+    <style>
+        .tarea-checkbox, #selectAll, #masterCheckbox {
+            margin: 0;
+            transform: scale(1.3);
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        /* Estilos para tareas completadas */
+        .tarea-completada {
+            background-color: #f8f9fa !important;
+        }
+        .tarea-completada .titulo-tarea {
+            text-decoration: line-through;
+            color: #6c757d !important;
+            font-style: italic;
+        }
+        .tarea-completada .fecha-tarea {
+            color: #adb5bd !important;
+            text-decoration: line-through;
+        }
+        .titulo-tarea {
+            font-weight: 500;
+        }
+        /* Animación suave para el cambio de estado */
+        .tarea-row {
+            transition: all 0.3s ease;
+        }
+        /* Contador de tareas */
+        .tareas-contador {
+            background-color: #e2f0fd;
+            border-left: 4px solid #4a90e2;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        /* Clase para tareas completadas que se mantienen */
+        .tarea-mantener {
+            opacity: 0.6;
+        }
+    </style>
+    <meta name="_csrf" th:content="${_csrf?.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}"/>
+</head>
+
+<body>
+<div th:replace="fragments :: navbar"></div>
+
+<div class="container-fluid">
+    <!-- Contador de tareas -->
+    <div class="tareas-contador">
+        <i class="fas fa-tasks mr-2"></i>
+        <strong>Tareas pendientes:</strong> 
+        <span class="badge badge-primary" id="contador-activas" th:text="${tareasActivas}">0</span>
+        de 
+        <span class="badge badge-secondary" id="contador-totales" th:text="${tareas.size()}">0</span>
+        <span class="ml-2">(<span id="contador-completadas" th:text="${tareas.size() - tareasActivas}">0</span> completadas)</span>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col">
+			<!-- Mensaje cuando no hay tareas -->
+			<div th:if="${listaVacia}" class="alert alert-info text-center mt-3">
+			    No hay tareas pendientes.
+			</div>
+
+            <div th:if="${!tareas.isEmpty()}" class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="selectAllBtn" onclick="toggleSelectAll()">
+                            <i class="fas fa-check-square"></i> Seleccionar todo
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm ml-2" id="deleteSelectedBtn" onclick="confirmDeleteSelected()" disabled>
+                            <i class="fas fa-trash"></i> Borrar seleccionadas
+                        </button>
+                    </div>
+                    <div>
+                        <span id="selectedCounter" class="badge badge-info">0 tareas seleccionadas</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" th:action="@{/usuarios/{id}/tareas/borrar-multiples(id=${usuario.id})}" id="formBorrarMultiples">
+                <input type="hidden" name="tareasIds" id="tareasIds"/>
+            </form>
+
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th th:if="${!tareas.isEmpty()}" style="width: 40px;">
+                        <input type="checkbox" id="masterCheckbox" onchange="toggleSelectAll()" title="Seleccionar todo">
+                    </th>
+                    <th>Id</th>
+                    <th>Completada</th>
+                    <th>Tarea</th>
+                    <th>Fecha Creación</th>
+                    <th>Fecha Vencimiento</th>
+                    <th>Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="tarea: ${tareas}"
+                    th:class="'tarea-row ' + (${tarea.completada} ? 'tarea-completada tarea-mantener' : '')"
+                    th:data-tarea-id="${tarea.id}">
+                    <td><input type="checkbox" class="task-checkbox" th:value="${tarea.id}" onchange="updateSelectedCount()"></td>
+                    <td th:text="${tarea.id}" th:classappend="${tarea.completada} ? ' fecha-tarea' : ''"></td>
+                    <td>
+                        <input type="checkbox" class="checkbox-completada"
+                               th:checked="${tarea.completada}"
+                               th:onchange="'marcarCompletada(' + ${tarea.id} + ', this.checked)'"
+                               title="Marcar como completada">
+                    </td>
+                    <td>
+                        <span th:text="${tarea.titulo}" class="titulo-tarea"></span>
+                    </td>
+                    <td th:text="${tarea.fechaCreacion != null ? tarea.fechaCreacion.format(T(java.time.format.DateTimeFormatter).ofPattern('dd/MM/yyyy')) : ''}"
+                        th:classappend="${tarea.completada} ? ' fecha-tarea' : ''"></td>
+                    <td>
+                        <span th:if="${tarea.fechaVencimiento != null}"
+                              th:text="${tarea.fechaVencimiento.format(T(java.time.format.DateTimeFormatter).ofPattern('dd/MM/yyyy'))}"
+                              th:class="${tarea.fechaVencimiento.isBefore(T(java.time.LocalDate).now())} ? 'text-danger font-weight-bold' : 'text-success'"
+                              th:classappend="${tarea.completada} ? ' fecha-tarea' : ''">
+                        </span>
+                        <span th:if="${tarea.fechaVencimiento == null}"
+                              th:class="'text-muted font-italic' + (${tarea.completada} ? ' fecha-tarea' : '')">Sin fecha límite</span>
+                    </td>
+                    <td>
+                        <a class="btn btn-primary btn-xs" th:href="@{/tareas/{id}/editar(id=${tarea.id})}">editar</a>
+                        <button class="btn btn-danger btn-xs" style="cursor: pointer;"
+                                th:onclick="'borrarTarea(' + ${tarea.id} + ')'">borrar</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="row mt-3">
+                <div class="col text-center">
+                    <a th:href="@{'/usuarios/' + ${usuario.id} + '/tareas/exportar'}" class="btn btn-success">
+                        Exportar a CSV
+                    </a>
+                </div>
+            </div>
+
+            <p>
+                <a class="btn btn-primary" th:href="@{/usuarios/{id}/tareas/nueva(id=${usuario.id})}"> Nueva tarea</a>
+                <a class="btn btn-link" href="/logout">Salir</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col">
+            <div class="alert alert-success alert-dismissible fade show" role="alert"
+                 th:if="${!#strings.isEmpty(mensaje)}">
+                <span th:text="${mensaje}"></span>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar borrado</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro/a de que quieres borrar <span id="taskCountText"></span> seleccionada(s)?</p>
+                    <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteSelectedTasks()">
+                        <i class="fas fa-trash"></i> Confirmar borrado
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalBorrarTarea" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar borrado</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ¿Quieres borrar esta tarea?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmarBorrar">Borrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="fragments::javascript"/>
+
+    <script type="text/javascript">
+        // Variables globales
+        let selectedTasks = [];
+        let allCheckboxes = [];
+        let tareaAEliminar = null;
+        let contadorActivas = parseInt(document.getElementById('contador-activas').textContent);
+        let contadorTotales = parseInt(document.getElementById('contador-totales').textContent);
+        let contadorCompletadas = parseInt(document.getElementById('contador-completadas').textContent);
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function () {
+            allCheckboxes = document.querySelectorAll('.task-checkbox');
+            updateSelectedCount();
+            
+            const btnConfirmar = document.getElementById('btnConfirmarBorrar');
+            if (btnConfirmar) {
+                btnConfirmar.addEventListener('click', function () {
+                    if (!tareaAEliminar) return;
+                    fetch('/tareas/' + tareaAEliminar, {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Error al borrar tarea');
+                        $('#modalBorrarTarea').modal('hide');
+                        location.reload();
+                    })
+                    .catch(error => alert('Error: ' + error.message));
+                });
+            }
+        });
+
+        // Función para actualizar contadores
+        function actualizarContadores() {
+            document.getElementById('contador-activas').textContent = contadorActivas;
+            document.getElementById('contador-totales').textContent = contadorTotales;
+            document.getElementById('contador-completadas').textContent = contadorCompletadas;
+        }
+
+        // Función para marcar tarea como completada
+        function marcarCompletada(idTarea, completada) {
+            const checkbox = document.querySelector(`input[onchange*="${idTarea}"]`);
+            const row = document.querySelector(`tr[data-tarea-id="${idTarea}"]`);
+            
+            checkbox.disabled = true;
+            
+            fetch(`/tareas/${idTarea}/completar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `completada=${completada}`
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Error al actualizar tarea');
+                return response.json();
+            })
+            .then(data => {
+                if (data.completada) {
+                    // Tarea marcada como completada
+                    contadorActivas--;
+                    contadorCompletadas++;
+                    
+                    // Aplicar estilos de tarea completada
+                    row.classList.add('tarea-completada', 'tarea-mantener');
+                    const tituloSpan = row.querySelector('.titulo-tarea');
+                    const fechaElements = row.querySelectorAll('.fecha-tarea');
+                    
+                    if (tituloSpan) {
+                        tituloSpan.style.textDecoration = 'line-through';
+                        tituloSpan.style.color = '#6c757d';
+                        tituloSpan.style.fontStyle = 'italic';
+                    }
+                    
+                    fechaElements.forEach(elem => {
+                        elem.style.color = '#adb5bd';
+                        elem.style.textDecoration = 'line-through';
+                    });
+                    
+                    // Mover al final de la lista
+                    row.parentElement.appendChild(row);
+                } else {
+                    // Tarea marcada como no completada
+                    contadorActivas++;
+                    contadorCompletadas--;
+                    
+                    // Quitar estilos de tarea completada
+                    row.classList.remove('tarea-completada', 'tarea-mantener');
+                    const tituloSpan = row.querySelector('.titulo-tarea');
+                    const fechaElements = row.querySelectorAll('.fecha-tarea');
+                    
+                    if (tituloSpan) {
+                        tituloSpan.style.textDecoration = '';
+                        tituloSpan.style.color = '';
+                        tituloSpan.style.fontStyle = '';
+                    }
+                    
+                    fechaElements.forEach(elem => {
+                        elem.style.color = '';
+                        elem.style.textDecoration = '';
+                    });
+                    
+                    // Mover al inicio de la lista
+                    row.parentElement.insertBefore(row, row.parentElement.firstChild);
+                }
+                
+                actualizarContadores();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                checkbox.checked = !completada;
+                alert('Error al actualizar la tarea: ' + error.message);
+            })
+            .finally(() => {
+                checkbox.disabled = false;
+            });
+        }
+
+        // Resto de funciones (igual que antes)
+        function borrarTarea(idTarea) {
+            tareaAEliminar = idTarea;
+            $('#modalBorrarTarea').modal('show');
+        }
+
+        function updateSelectedCount() {
+            selectedTasks = [];
+            const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+            checkboxes.forEach(checkbox => selectedTasks.push(parseInt(checkbox.value)));
+            const count = selectedTasks.length;
+            const counterElement = document.getElementById('selectedCounter');
+            const deleteBtn = document.getElementById('deleteSelectedBtn');
+            const masterCheckbox = document.getElementById('masterCheckbox');
+            
+            counterElement.textContent = count + ' tarea' + (count !== 1 ? 's' : '') + ' seleccionada' + (count !== 1 ? 's' : '');
+            counterElement.className = count === 0 ? 'badge badge-secondary' : 'badge badge-info';
+            deleteBtn.disabled = count === 0;
+            
+            if (masterCheckbox) {
+                const totalCheckboxes = allCheckboxes.length;
+                masterCheckbox.indeterminate = count > 0 && count < totalCheckboxes;
+                masterCheckbox.checked = count === totalCheckboxes;
+            }
+            
+            updateSelectAllButtonText();
+        }
+
+        function toggleSelectAll() {
+            const masterCheckbox = document.getElementById('masterCheckbox');
+            const shouldCheck = !masterCheckbox.checked || masterCheckbox.indeterminate;
+            allCheckboxes.forEach(checkbox => checkbox.checked = shouldCheck);
+            updateSelectedCount();
+        }
+
+        function updateSelectAllButtonText() {
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const masterCheckbox = document.getElementById('masterCheckbox');
+            if (masterCheckbox && masterCheckbox.checked && !masterCheckbox.indeterminate) {
+                selectAllBtn.innerHTML = '<i class="fas fa-square"></i> Deseleccionar todo';
+            } else {
+                selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i> Seleccionar todo';
+            }
+        }
+
+        function confirmDeleteSelected() {
+            if (selectedTasks.length === 0) {
+                alert('Debe seleccionar al menos una tarea para borrar.');
+                return;
+            }
+            document.getElementById('taskCountText').textContent = selectedTasks.length;
+            $('#confirmDeleteModal').modal('show');
+        }
+
+        function deleteSelectedTasks() {
+            if (selectedTasks.length === 0) return;
+            const deleteBtn = document.querySelector('#confirmDeleteModal .btn-danger');
+            const originalText = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Borrando...';
+            deleteBtn.disabled = true;
+            
+            fetch('/tareas/multiple', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(selectedTasks)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Error al borrar tareas');
+                $('#confirmDeleteModal').modal('hide');
+                location.reload();
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+                deleteBtn.innerHTML = originalText;
+                deleteBtn.disabled = false;
+            });
+        }
+    </script>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16
+    container_name: db-equipo
+    environment:
+      POSTGRES_USER: mads
+      POSTGRES_PASSWORD: mads
+      POSTGRES_DB: mads
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker-data:/var/lib/postgresql/data
+    networks:
+      network-equipo:
+        aliases:
+          - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mads -d mads"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Spring Boot
+  app:
+    image: kealpetu/todolist-app-equipo-5:1.3.0
+    container_name: todolist-app
+    ports:
+      - "8080:8080"
+    networks:
+      - network-equipo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--spring.profiles.active=postgres", "--POSTGRES_HOST=postgres"]
+
+networks:
+  network-equipo:
+    driver: bridge

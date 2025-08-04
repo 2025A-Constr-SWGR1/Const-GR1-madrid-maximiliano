@@ -1,0 +1,68 @@
+trigger:
+  branches:
+    include:
+      - feature/*
+      - develop
+      - release/*
+      - main
+
+stages:
+# ----------------------------
+# STAGE 1: CI - Compilar y Test
+# ----------------------------
+- stage: CI
+  displayName: "Integración Continua"
+  jobs:
+    - job: BuildAndTest
+      displayName: "Compilar y ejecutar pruebas"
+      pool:
+        name: Default   # Self-Hosted Agent (Agent-Karina)
+      steps:
+        # 1. Compilar y ejecutar tests con Maven
+        - task: Maven@3
+          displayName: 'Compilar y ejecutar tests con Maven'
+          inputs:
+            mavenPomFile: 'pom.xml'
+            goals: 'clean package'
+            options: '-Dmaven.test.skip=false'
+            javaHomeOption: 'Path'
+            jdkDirectory: 'C:\Program Files\Java\jdk-21'
+            publishJUnitResults: true
+            testResultsFiles: '**/surefire-reports/*.xml'
+
+        # 2. Publicar artefacto JAR
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publicar JAR como artefacto'
+          inputs:
+            targetPath: '$(System.DefaultWorkingDirectory)/target'
+            artifact: 'drop'
+
+# ----------------------------
+# STAGE 2: CD - Desplegar en Azure
+# ----------------------------
+- stage: CD
+  displayName: "Despliegue Continuo"
+  dependsOn: CI
+  # Solo ejecuta CD si estamos en main
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+    - job: Deploy
+      displayName: "Desplegar en Azure App Service"
+      pool:
+        name: Default   # Self-Hosted Agent
+      steps:
+        # 1. Descargar artefacto del stage anterior
+        - task: DownloadPipelineArtifact@2
+          displayName: 'Descargar artefacto JAR'
+          inputs:
+            buildType: 'current'
+            artifactName: 'drop'
+            targetPath: '$(Pipeline.Workspace)/drop'
+
+        # 2. Desplegar en Azure App Service
+        - task: AzureWebApp@1
+          displayName: 'Desplegar JAR en App Service'
+          inputs:
+            azureSubscription: 'AzureConnection-Karina' # Tu Service Connection real
+            appName: 'todolist-grupo5'                     # Tu App Service en Azure
+            package: '$(Pipeline.Workspace)/drop/*.jar'

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Usuarios Registrados</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Usuarios Registrados</h2>
+
+        <!-- Mensaje de error si el usuario no se encontró -->
+        <div class="alert alert-warning" th:if="${param.error == 'notfound'}">
+            Usuario no encontrado.
+        </div>
+
+        <!-- Si no hay usuarios, muestra el mensaje -->
+        <div th:if="${#lists.isEmpty(usuarios)}">
+            <p>No hay usuarios registrados</p>
+        </div>
+
+        <!-- Si sí hay usuarios, muestra la tabla -->
+        <table class="table table-striped" th:if="${!#lists.isEmpty(usuarios)}">
+			<thead>
+			    <tr>
+			        <th>ID</th>
+			        <th>Correo electrónico</th>
+			        <th>Estado</th>
+			        <th>Acciones</th>
+			    </tr>
+			</thead>
+
+            <tbody>
+                <tr th:each="u : ${usuarios}">
+                    <td th:text="${u.id}">1</td>
+                    <td th:text="${u.email}">correo@ejemplo.com</td>
+					<td th:text="${u.bloqueado} ? 'Bloqueado' : 'Activo'">Estado</td>
+
+					<td>
+					    <a th:href="@{'/registrados/' + ${u.id}}" class="btn btn-sm btn-primary">
+					        Ver
+					    </a>
+
+					    <!-- Solo mostrar el botón si NO es el admin actual -->
+					    <form th:action="@{'/registrados/' + ${u.id} + '/toggle-bloqueo'}" method="post" th:if="${u.id != #httpSession.getAttribute('idUsuario')}">
+					        <button type="submit" class="btn btn-sm"
+					                th:classappend="${u.bloqueado} ? 'btn-success' : 'btn-danger'"
+					                th:text="${u.bloqueado} ? 'Habilitar' : 'Bloquear'">
+					        </button>
+					    </form>
+					</td>
+
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
